@@ -1,0 +1,96 @@
+description = 'Hibernate Reactive Benchmark'
+
+ext {
+    benchmarkVersion = '1.0.0.SNAPSHOT'
+
+    ormVersion = '5.4.17.Final'
+    rxVersion = '1.0.0.Alpha4'
+}
+
+allprojects {
+    if ( project.hasProperty( 'mavenLocal' ) ) {
+        repositories {
+            mavenLocal()
+        }
+    }
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+    group 'org.hibernate.benchmarks.reactive'
+    version '1.0.0-SNAPSHOT'
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
+    }
+    dependencies {
+        classpath "org.hibernate:hibernate-gradle-plugin:5.4.17.Final"
+        classpath 'me.champeau.gradle:jmh-gradle-plugin:0.4.8'
+    }
+}
+
+apply plugin: 'build-dashboard'
+
+apply plugin: 'project-report'
+
+apply plugin: 'java'
+
+dependencies {
+    implementation 'org.openjdk.jmh:jmh-core:1.21'
+
+    implementation "org.hibernate.reactive:hibernate-reactive-core:${rxVersion}"
+
+    // Hibernate Validator (optional)
+    implementation 'org.hibernate.validator:hibernate-validator:6.1.5.Final'
+    runtimeOnly 'org.glassfish:jakarta.el:3.0.3'
+
+    // JPA metamodel generation for criteria queries (optional)
+    annotationProcessor "org.hibernate:hibernate-jpamodelgen:${ormVersion}"
+
+    // database drivers for PostgreSQL and MySQL
+    runtimeOnly 'io.vertx:vertx-pg-client:3.9.1'
+    runtimeOnly 'io.vertx:vertx-mysql-client:3.9.1'
+
+    runtimeOnly 'org.postgresql:postgresql:42.2.12'
+    runtimeOnly 'mysql:mysql-connector-java:8.0.20'
+
+    // logging (optional)
+    runtimeOnly 'org.slf4j:slf4j-log4j12:1.7.30'
+}
+
+apply plugin: 'org.hibernate.orm'
+
+hibernate {
+    enhance {
+        enableLazyInitialization = true
+        enableDirtyTracking = true
+        enableAssociationManagement = false
+    }
+}
+
+apply plugin: "me.champeau.gradle.jmh"
+
+jmh {
+    // for available options, see https://github.com/melix/jmh-gradle-plugin/blob/master/README.adoc#configuration-options
+    benchmarkMode = ['avgt']
+
+    fork = 2 //default 10
+    warmupIterations = 2 // Number of warmup iterations to do.
+    iterations = 10 //default 10
+
+    def formattedDate = new Date().format( 'yyyy-MM-dd-HHmmss' )
+
+    humanOutputFile = project.file( "${buildDir}/reports/jmh/${rxVersion}/human_${formattedDate}.txt" )
+    resultsFile = project.file( "${buildDir}/reports/jmh/${rxVersion}/results_${formattedDate}.txt" )
+}
+
+task compile {
+    description = 'Runs all compilation-related tasks, including processing resources'
+    dependsOn compileJava, compileTestJava, processResources, processTestResources
+}

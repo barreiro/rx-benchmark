@@ -16,4 +16,11 @@ Start a postgeSQL instance using podman:
 
 ```./gradlew jmh```
 
+Adjust JMH configuration in build.gradle. 
 See https://github.com/melix/jmh-gradle-plugin/blob/master/README.adoc#configuration-options for further JMH configurations
+
+The benchmark runs constricted to a single CPU core. This can be changed in constrainedJVM.sh. 
+
+### Results
+
+The results are available in build/reports/jmh folder.

@@ -4,11 +4,11 @@ ext {
     benchmarkVersion = '1.0.0.SNAPSHOT'
 
     ormVersion = '5.4.17.Final'
-    rxVersion = '1.0.0.Alpha4'
+    rxVersion = "1.0.0.Alpha4"
 }
 
 allprojects {
-    if ( project.hasProperty( 'mavenLocal' ) ) {
+    if (project.hasProperty('mavenLocal')) {
         repositories {
             mavenLocal()
         }
@@ -79,15 +79,25 @@ apply plugin: "me.champeau.gradle.jmh"
 jmh {
     // for available options, see https://github.com/melix/jmh-gradle-plugin/blob/master/README.adoc#configuration-options
     benchmarkMode = ['avgt']
+    include = ['Mutiny', 'Orm', 'OrmDispatch', 'Rx']
 
-    fork = 2 //default 10
-    warmupIterations = 2 // Number of warmup iterations to do.
-    iterations = 10 //default 10
+    fork = 1 // Use 0 to disable forking altogether. Default 2.
+    warmupIterations = 5 // Number of warmup iterations to do. Default 1.
+    iterations = 10 // Number of measurement iterations to do. Default 10.
+    threads = 8 // Number of worker threads to run with. Default 4.
 
-    def formattedDate = new Date().format( 'yyyy-MM-dd-HHmmss' )
+    failOnError = false
+    timeUnit = 'us' // Output time unit. Available time units are: [m, s, ms, us, ns].
+    verbosity = 'NORMAL' // Available modes are: [SILENT, NORMAL, EXTRA]
 
-    humanOutputFile = project.file( "${buildDir}/reports/jmh/${rxVersion}/human_${formattedDate}.txt" )
-    resultsFile = project.file( "${buildDir}/reports/jmh/${rxVersion}/results_${formattedDate}.txt" )
+    jvm = './constrainedJVM.sh' // Comment to run unconstrained
+//    jvmArgs = ['-XX:StartFlightRecording=disk=true,dumponexit=true,filename=reactive-benchmark.jfr,settings=profile']
+//    profilers = ['cl', 'comp', 'gc', 'perfnorm', 'stack']
+
+    def formattedDate = new Date().format('yyyy-MM-dd-HHmmss')
+
+    humanOutputFile = project.file("${buildDir}/reports/jmh/${rxVersion}/human_${formattedDate}.txt")
+    resultsFile = project.file("${buildDir}/reports/jmh/${rxVersion}/results_${formattedDate}.txt")
 }
 
 task compile {

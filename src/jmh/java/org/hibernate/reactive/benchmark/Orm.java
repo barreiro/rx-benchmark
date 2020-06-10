@@ -8,7 +8,8 @@ public class Orm implements ReactiveBenchmark {
 
     @Benchmark
     public void executeFind(ReactiveBenchmarkState state, Blackhole bh) {
-        state.inOrmSession(session -> bh.consume(session.find(Author.class, state.getSingleId()).getName()));
+        Author author = state.inOrmSession(session -> session.find(Author.class, state.getSingleId()));
+        bh.consume(author.getName());
     }
 
 }

@@ -6,21 +6,16 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.concurrent.ExecutionException;
 
-public class OrmDispatch implements ReactiveBenchmark {
+public class MutinyDispatch implements ReactiveBenchmark {
 
     @Benchmark
     public void executeFind(ReactiveBenchmarkState state, Blackhole bh) {
         try {
-            Author author = state.getDispatchExecutor().submit(() ->
-                    state.getWorkerExecutor().submit(() ->
-                            state.inOrmSession(session -> session.find(Author.class, state.getSingleId()))
-                    )
-            ).get().get();
-
-            bh.consume(author.getName());
+            state.getDispatchExecutor().submit(() ->
+                    state.withMutinySession(s -> s.find(Author.class, state.getSingleId()))
+            ).get().onItem().invoke(author -> bh.consume(author.getName()));
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
     }
-
 }

@@ -46,6 +46,9 @@ dependencies {
 
     implementation "org.hibernate.reactive:hibernate-reactive-core:${rxVersion}"
 
+    // JBoss threads, for ORM dispatch
+    implementation "org.jboss.threads:jboss-threads:3.1.1.Final"
+
     // Hibernate Validator (optional)
     implementation 'org.hibernate.validator:hibernate-validator:6.1.5.Final'
     runtimeOnly 'org.glassfish:jakarta.el:3.0.3'
@@ -79,12 +82,15 @@ apply plugin: "me.champeau.gradle.jmh"
 jmh {
     // for available options, see https://github.com/melix/jmh-gradle-plugin/blob/master/README.adoc#configuration-options
     benchmarkMode = ['avgt']
-    include = ['Mutiny', 'Orm', 'OrmDispatch', 'Rx']
+
+    // Run either the raw or the dispatch version. Adjust threads accordingly (raw with few threads, dispatch with loads)
+    include = ['.*Dispatch']
+//    exclude = ['.*Dispatch']
 
     fork = 1 // Use 0 to disable forking altogether. Default 2.
     warmupIterations = 5 // Number of warmup iterations to do. Default 1.
     iterations = 10 // Number of measurement iterations to do. Default 10.
-    threads = 8 // Number of worker threads to run with. Default 4.
+    threads = 100 // Number of worker threads to run with. Default 4.
 
     failOnError = false
     timeUnit = 'us' // Output time unit. Available time units are: [m, s, ms, us, ns].

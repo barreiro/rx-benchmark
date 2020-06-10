@@ -8,9 +8,9 @@ public class Mutiny implements ReactiveBenchmark {
 
     @Benchmark
     public void executeFind(ReactiveBenchmarkState state, Blackhole bh) {
-        state.withMutinySession(
-                s -> s.find(Author.class, state.getSingleId()).onItem().invoke(
-                        author -> bh.consume(author.getName()))
+        state.withMutinySession(s -> s.find(Author.class, state.getSingleId())
+                        .onItem()
+                        .invoke(author -> bh.consume(author.getName()))
         ).await().indefinitely();
     }
 }

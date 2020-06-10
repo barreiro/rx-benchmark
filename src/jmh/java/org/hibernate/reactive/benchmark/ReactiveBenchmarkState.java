@@ -7,18 +7,15 @@ import org.hibernate.reactive.model.Author;
 import org.hibernate.reactive.model.Book;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.hibernate.reactive.stage.Stage;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
+import org.jboss.threads.EnhancedQueueExecutor;
+import org.openjdk.jmh.annotations.*;
 
 import java.util.Properties;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static javax.persistence.Persistence.createEntityManagerFactory;
@@ -27,7 +24,12 @@ import static org.hibernate.cfg.AvailableSettings.JPA_PERSISTENCE_PROVIDER;
 @State(Scope.Benchmark)
 public class ReactiveBenchmarkState {
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(10); // Same as the pool size defined in persistence.xml
+    // Number of threads on the dispatch executor should be roughly twice the number of cores.
+    @Param({"4"})
+    private int dispatchSize;
+
+    private ExecutorService workerExecutor;
+    private ExecutorService dispatchExecutor;
 
     private Stage.SessionFactory rxSessionFactory;
     private Mutiny.SessionFactory mutinySessionFactory;
@@ -35,7 +37,9 @@ public class ReactiveBenchmarkState {
 
     private Integer[] ids;
 
-    @Setup
+
+
+    @Setup(Level.Trial)
     public void setup() {
         // obtain a factory for reactive sessions based on the standard JPA configuration properties specified in resources/META-INF/persistence.xml
         Properties properties = new Properties();
@@ -48,13 +52,27 @@ public class ReactiveBenchmarkState {
         ids = populateDatabase();
     }
 
-    @TearDown
+    @Setup(Level.Iteration)
+    public void setupExecutors() {
+        workerExecutor = new EnhancedQueueExecutor.Builder().build();
+        dispatchExecutor = Executors.newFixedThreadPool(dispatchSize);
+    }
+
+    @TearDown(Level.Trial)
     public void shutdown() {
         cleanUpDatabase();
         rxSessionFactory.close();
         mutinySessionFactory.close();
         ormSessionFactory.close();
-        executor.shutdown();
+    }
+
+    @TearDown(Level.Iteration)
+    public void shutdownExecutors() throws InterruptedException {
+        dispatchExecutor.shutdown();
+        workerExecutor.shutdown();
+
+        dispatchExecutor.awaitTermination(10, TimeUnit.SECONDS);
+        workerExecutor.awaitTermination(10, TimeUnit.SECONDS);
     }
 
     protected Integer[] populateDatabase() {
@@ -67,23 +85,31 @@ public class ReactiveBenchmarkState {
         author2.addBook(book2);
         author2.addBook(book3);
 
-        inOrmTransaction(
-                entityManager -> {
-                    entityManager.persist(author1);
-                    entityManager.persist(author2);
-                }
-        );
+        try (Session s = ormSessionFactory.openSession()) {
+            s.getTransaction().begin();
+            s.persist(author1);
+            s.persist(author2);
+            s.getTransaction().commit();
+        }
 
         return new Integer[]{author1.getId(), author2.getId()};
     }
 
     protected void cleanUpDatabase() {
-        inOrmTransaction(entityManager -> entityManager.createQuery("delete from Book").executeUpdate());
-        inOrmTransaction(entityManager -> entityManager.createQuery("delete from Author").executeUpdate());
+        try (Session s = ormSessionFactory.openSession()) {
+            s.getTransaction().begin();
+            s.createQuery("delete from Book").executeUpdate();
+            s.createQuery("delete from Author").executeUpdate();
+            s.getTransaction().commit();
+        }
     }
 
-    public Executor getExecutor() {
-        return executor;
+    public ExecutorService getDispatchExecutor() {
+        return dispatchExecutor;
+    }
+
+    public ExecutorService getWorkerExecutor() {
+        return workerExecutor;
     }
 
     public Integer[] getIds() {
@@ -111,18 +137,19 @@ public class ReactiveBenchmarkState {
     public <T> Uni<T> withMutinyTransaction(BiFunction<Mutiny.Session, Mutiny.Transaction, Uni<T>> work) {
         return mutinySessionFactory.withTransaction(work);
     }
-    
-    public void inOrmSession(Consumer<Session> consumer) {
+
+    public <R> R inOrmSession(Function<Session, R> function) {
         try (Session s = ormSessionFactory.openSession()) {
-            consumer.accept(s);
+            return function.apply(s);
         }
     }
 
-    public void inOrmTransaction(Consumer<Session> consumer) {
+    public <R> R inOrmTransaction(Function<Session, R> function) {
         Session s = ormSessionFactory.openSession();
+        R value = null;
         try {
             s.getTransaction().begin();
-            consumer.accept(s);
+            value = function.apply(s);
             s.getTransaction().commit();
         } catch (Exception e) {
             if (s.getTransaction().isActive()) {
@@ -131,5 +158,6 @@ public class ReactiveBenchmarkState {
         } finally {
             s.close();
         }
+        return value;
     }
 }

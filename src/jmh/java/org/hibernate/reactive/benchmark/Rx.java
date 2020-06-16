@@ -8,8 +8,7 @@ public class Rx implements ReactiveBenchmark {
 
     @Benchmark
     public void executeFind(ReactiveBenchmarkState state, Blackhole bh) {
-        state.withReactiveSession(session ->
-                session.find(Author.class, state.getSingleId()).thenAccept(author -> bh.consume(author.getName()))
-        ).toCompletableFuture().join();
+        Author author = state.withReactiveSession(session -> session.find(Author.class, state.getSingleId())).toCompletableFuture().join();
+        bh.consume(author.getName());
     }
 }

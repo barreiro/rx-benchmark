@@ -12,8 +12,8 @@ public class MutinyDispatch implements ReactiveBenchmark {
     public void executeFind(ReactiveBenchmarkState state, Blackhole bh) {
         try {
             state.getDispatchExecutor().submit(() ->
-                    state.withMutinySession(s -> s.find(Author.class, state.getSingleId()))
-            ).get().onItem().invoke(author -> bh.consume(author.getName()));
+                    state.withMutinySession(s -> s.find(Author.class, state.getSingleId())).onItem().invoke(author -> bh.consume(author.getName()) )
+            ).get().await().indefinitely();
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }

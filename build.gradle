@@ -56,12 +56,13 @@ dependencies {
     // JPA metamodel generation for criteria queries (optional)
     annotationProcessor "org.hibernate:hibernate-jpamodelgen:${ormVersion}"
 
-    // database drivers for PostgreSQL and MySQL
+    // database drivers for PostgreSQL
     runtimeOnly 'io.vertx:vertx-pg-client:3.9.1'
-    runtimeOnly 'io.vertx:vertx-mysql-client:3.9.1'
-
     runtimeOnly 'org.postgresql:postgresql:42.2.12'
-    runtimeOnly 'mysql:mysql-connector-java:8.0.20'
+
+    // database drivers for MySQL
+//    runtimeOnly 'io.vertx:vertx-mysql-client:3.9.1'
+//    runtimeOnly 'mysql:mysql-connector-java:8.0.20'
 
     // logging (optional)
     runtimeOnly 'org.slf4j:slf4j-log4j12:1.7.30'
@@ -97,7 +98,8 @@ jmh {
     verbosity = 'NORMAL' // Available modes are: [SILENT, NORMAL, EXTRA]
 
     jvm = './constrainedJVM.sh' // Comment to run unconstrained
-//    jvmArgs = ['-XX:StartFlightRecording=disk=true,dumponexit=true,filename=reactive-benchmark.jfr,settings=profile']
+//    jvmArgsPrepend = ['-agentlib:jdwp=transport=dt_socket,server=y,address=*:5005,suspend=y'] // Remote debug
+//    jvmArgs = ['-XX:StartFlightRecording=disk=true,dumponexit=true,filename=reactive-benchmark.jfr,settings=profile'] // Java Flight Recorder
 //    profilers = ['cl', 'comp', 'gc', 'perfnorm', 'stack']
 
     def formattedDate = new Date().format('yyyy-MM-dd-HHmmss')

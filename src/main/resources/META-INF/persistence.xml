@@ -24,9 +24,13 @@
             <property name="javax.persistence.jdbc.password"
                       value="hreact"/>
 
+            <!-- Agroal connection pool -->
+            <property name="hibernate.agroal.maxSize"
+                      value="95"/>
+
             <!-- The Vert.x SQL Client connection pool size -->
             <property name="hibernate.connection.pool_size"
-                      value="100"/>
+                      value="95"/>
 
             <!-- Automatic schema export -->
             <property name="javax.persistence.schema-generation.database.action"

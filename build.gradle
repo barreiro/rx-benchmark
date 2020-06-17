@@ -56,6 +56,9 @@ dependencies {
     // JPA metamodel generation for criteria queries (optional)
     annotationProcessor "org.hibernate:hibernate-jpamodelgen:${ormVersion}"
 
+    // Agroal connection pool (optional)
+    runtimeOnly "org.hibernate:hibernate-agroal:${ormVersion}"
+
     // database drivers for PostgreSQL
     runtimeOnly 'io.vertx:vertx-pg-client:3.9.1'
     runtimeOnly 'org.postgresql:postgresql:42.2.12'
@@ -86,12 +89,14 @@ jmh {
 
     // Run either the raw or the dispatch version. Adjust threads accordingly (raw with few threads, dispatch with loads)
     include = ['.*Dispatch']
+    threads = 1000 // Number of worker threads to run with. Default 4.
+
 //    exclude = ['.*Dispatch']
+//    threads = 1 // Number of worker threads to run with. Default 4.
 
     fork = 1 // Use 0 to disable forking altogether. Default 2.
     warmupIterations = 5 // Number of warmup iterations to do. Default 1.
     iterations = 10 // Number of measurement iterations to do. Default 10.
-    threads = 100 // Number of worker threads to run with. Default 4.
 
     failOnError = false
     timeUnit = 'us' // Output time unit. Available time units are: [m, s, ms, us, ns].
